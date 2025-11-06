@@ -9,8 +9,8 @@ const Config = {
    */
   api: {
     // URL del webhook de n8n - CAMBIAR POR TU URL
-    webhookUrl: 'https://datatraack.app.n8n.cloud/webhook-test/f744d42e-fdb3-4f27-83a7-9cfcc52c3eb3/attendance',
     
+    webhookUrl: 'https://datatraack.app.n8n.cloud/webhook-test/e61c7618-4764-428c-a78a-06ed77f008c7',
     // Timeout para peticiones (ms)
     timeout: 30000,
     
@@ -249,7 +249,7 @@ const Config = {
     enableLocation: true,
     
     // Hacer ubicación obligatoria para enviar
-    requireLocation: false,
+    requireLocation: true,
     
     // Habilitar compresión de imágenes
     enableCompression: true,
