@@ -249,7 +249,7 @@ const Config = {
     enableLocation: true,
     
     // Hacer ubicación obligatoria para enviar
-    requireLocation: true,
+    requireLocation: false,
     
     // Habilitar compresión de imágenes
     enableCompression: true,
