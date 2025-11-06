@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cámara con Timestamp en Vivo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f172a;
+            color: white;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .camera-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #videoElement {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            background: black;
+        }
+
+        .timestamp-overlay {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            padding: 12px 20px;
+            border-radius: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+            font-family: monospace;
+            z-index: 10;
+        }
+
+        .timestamp-date {
+            font-size: 16px;
+            margin-bottom: 4px;
+            color: #ffffff;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+        }
+
+        .timestamp-time {
+            font-size: 20px;
+            font-weight: bold;
+            color: #ffffff;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 30px;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            z-index: 20;
+        }
+
+        .capture-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 4px solid white;
+            background: rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .capture-btn:hover {
+            transform: scale(1.1);
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .capture-btn:active {
+            transform: scale(0.95);
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .capture-btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: white;
+        }
+
+        .switch-camera-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 2px solid white;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .switch-camera-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid white;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 30;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        #canvas {
+            display: none;
+        }
+
+        .preview-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 40;
+        }
+
+        .preview-container.active {
+            display: flex;
+        }
+
+        .preview-image {
+            max-width: 90%;
+            max-height: 70%;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .preview-buttons {
+            display: flex;
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-accept {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-retry {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid white;
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .watermark-text {
+            position: absolute;
+            bottom: 100px;
+            right: 20px;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 12px;
+            z-index: 10;
+        }
+
+        @media (max-width: 640px) {
+            .timestamp-overlay {
+                bottom: 100px;
+                left: 10px;
+                padding: 8px 12px;
+            }
+
+            .timestamp-date {
+                font-size: 14px;
+            }
+
+            .timestamp-time {
+                font-size: 16px;
+            }
+
+            .controls {
+                padding-bottom: 20px;
+            }
+
+            .capture-btn {
+                width: 70px;
+                height: 70px;
+            }
+
+            .capture-btn::after {
+                width: 50px;
+                height: 50px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="camera-container">
+        <video id="videoElement" playsinline autoplay></video>
+        <canvas id="canvas"></canvas>
+        
+        <button class="close-btn" onclick="closeCamera()">✕</button>
+        
+        <div class="timestamp-overlay">
+            <div class="timestamp-date" id="timestampDate">📅 06/11/2024</div>
+            <div class="timestamp-time" id="timestampTime">🕐 03:45:00 PM</div>
+        </div>
+        
+        <div class="watermark-text">Sistema de Asistencias</div>
+        
+        <div class="controls">
+            <button class="switch-camera-btn" onclick="switchCamera()" id="switchBtn" style="display: none;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                </svg>
+            </button>
+            <button class="capture-btn" onclick="capturePhoto()"></button>
+        </div>
+        
+        <div class="preview-container" id="previewContainer">
+            <img class="preview-image" id="previewImage">
+            <div class="preview-buttons">
+                <button class="btn btn-retry" onclick="retryPhoto()">Tomar Otra</button>
+                <button class="btn btn-accept" onclick="acceptPhoto()">Usar Esta Foto</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let video = document.getElementById('videoElement');
+        let canvas = document.getElementById('canvas');
+        let context = canvas.getContext('2d');
+        let stream = null;
+        let facingMode = 'environment'; // 'user' para frontal, 'environment' para trasera
+        let capturedPhotoData = null;
+
+        // Inicializar cámara
+        async function initCamera() {
+            try {
+                // Detener stream anterior si existe
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
+
+                // Configuración de la cámara
+                const constraints = {
+                    video: {
+                        facingMode: facingMode,
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    }
+                };
+
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = stream;
+
+                // Detectar si hay múltiples cámaras
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                
+                if (videoDevices.length > 1) {
+                    document.getElementById('switchBtn').style.display = 'flex';
+                }
+
+            } catch (error) {
+                console.error('Error al acceder a la cámara:', error);
+                alert('No se pudo acceder a la cámara. Verifica los permisos.');
+                window.close();
+            }
+        }
+
+        // Actualizar timestamp en tiempo real
+        function updateTimestamp() {
+            const now = new Date();
+            
+            const dateStr = now.toLocaleDateString('es-MX', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+            
+            const timeStr = now.toLocaleTimeString('es-MX', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            });
+            
+            document.getElementById('timestampDate').textContent = `📅 ${dateStr}`;
+            document.getElementById('timestampTime').textContent = `🕐 ${timeStr}`;
+        }
+
+        // Capturar foto
+        function capturePhoto() {
+            // Configurar canvas con las dimensiones del video
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            // Dibujar el frame del video en el canvas
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Agregar timestamp a la imagen capturada
+            addTimestampToCanvas();
+            
+            // Convertir a data URL
+            capturedPhotoData = canvas.toDataURL('image/jpeg', 0.95);
+            
+            // Mostrar preview
+            document.getElementById('previewImage').src = capturedPhotoData;
+            document.getElementById('previewContainer').classList.add('active');
+        }
+
+        // Agregar timestamp al canvas
+        function addTimestampToCanvas() {
+            const padding = 20;
+            const fontSize = Math.max(24, canvas.width * 0.025);
+            const lineHeight = fontSize * 1.4;
+            
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('es-MX', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+            const timeStr = now.toLocaleTimeString('es-MX', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            });
+            
+            // Configurar estilo
+            context.font = `bold ${fontSize}px Arial`;
+            context.textAlign = 'left';
+            context.textBaseline = 'bottom';
+            
+            // Medir texto
+            const line1 = `📅 ${dateStr}`;
+            const line2 = `🕐 ${timeStr}`;
+            const metrics1 = context.measureText(line1);
+            const metrics2 = context.measureText(line2);
+            const maxWidth = Math.max(metrics1.width, metrics2.width);
+            
+            // Posición
+            const boxX = padding;
+            const boxY = canvas.height - (lineHeight * 2 + padding * 3);
+            const boxWidth = maxWidth + padding * 2;
+            const boxHeight = lineHeight * 2 + padding;
+            
+            // Dibujar fondo
+            context.fillStyle = 'rgba(0, 0, 0, 0.85)';
+            context.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            context.lineWidth = 2;
+            
+            // Rectángulo con esquinas redondeadas
+            const radius = 10;
+            context.beginPath();
+            context.moveTo(boxX + radius, boxY);
+            context.lineTo(boxX + boxWidth - radius, boxY);
+            context.quadraticCurveTo(boxX + boxWidth, boxY, boxX + boxWidth, boxY + radius);
+            context.lineTo(boxX + boxWidth, boxY + boxHeight - radius);
+            context.quadraticCurveTo(boxX + boxWidth, boxY + boxHeight, boxX + boxWidth - radius, boxY + boxHeight);
+            context.lineTo(boxX + radius, boxY + boxHeight);
+            context.quadraticCurveTo(boxX, boxY + boxHeight, boxX, boxY + boxHeight - radius);
+            context.lineTo(boxX, boxY + radius);
+            context.quadraticCurveTo(boxX, boxY, boxX + radius, boxY);
+            context.closePath();
+            context.fill();
+            context.stroke();
+            
+            // Dibujar texto
+            context.fillStyle = 'white';
+            context.shadowColor = 'rgba(0, 0, 0, 0.8)';
+            context.shadowBlur = 4;
+            context.shadowOffsetX = 2;
+            context.shadowOffsetY = 2;
+            
+            context.fillText(line1, boxX + padding, boxY + lineHeight);
+            context.fillText(line2, boxX + padding, boxY + lineHeight * 2);
+            
+            // Marca de agua
+            context.shadowBlur = 0;
+            context.shadowOffsetX = 0;
+            context.shadowOffsetY = 0;
+            context.font = `${fontSize * 0.5}px Arial`;
+            context.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            context.textAlign = 'right';
+            context.fillText('Sistema de Asistencias', canvas.width - padding, canvas.height - padding);
+        }
+
+        // Cambiar cámara
+        async function switchCamera() {
+            facingMode = facingMode === 'user' ? 'environment' : 'user';
+            await initCamera();
+        }
+
+        // Reintentar foto
+        function retryPhoto() {
+            document.getElementById('previewContainer').classList.remove('active');
+            capturedPhotoData = null;
+        }
+
+        // Aceptar foto
+        function acceptPhoto() {
+            if (capturedPhotoData && window.opener) {
+                // Enviar la foto de vuelta al formulario principal
+                window.opener.postMessage({
+                    type: 'photoCapture',
+                    data: capturedPhotoData,
+                    timestamp: new Date().toISOString()
+                }, '*');
+                closeCamera();
+            }
+        }
+
+        // Cerrar cámara
+        function closeCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            window.close();
+        }
+
+        // Inicializar
+        window.addEventListener('load', () => {
+            initCamera();
+            updateTimestamp();
+            setInterval(updateTimestamp, 1000);
+        });
+
+        // Limpiar al cerrar
+        window.addEventListener('beforeunload', () => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+        });
+    </script>
+</body>
+</html>
