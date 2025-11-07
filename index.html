@@ -9,10 +9,10 @@
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="assets/images/favicon.png">
     
-    <!-- TÃ­tulo -->
+    <!-- Título -->
     <title>Control de Asistencias | Tu Empresa</title>
     
-    <!-- PreconexiÃ³n para optimizaciÃ³n -->
+    <!-- Preconexión para optimización -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     
@@ -51,9 +51,9 @@
 
         <!-- Formulario -->
         <form id="attendanceForm" class="attendance-form" novalidate>
-            <!-- InformaciÃ³n Personal -->
+            <!-- Información Personal -->
             <section class="form-section">
-                <h2 class="section-title">InformaciÃ³n Personal</h2>
+                <h2 class="section-title">Información Personal</h2>
                 
                 <div class="form-group">
                     <label for="fullName" class="form-label">
@@ -79,14 +79,14 @@
                         </label>
                         <select id="client" name="client" class="form-select" required>
                             <option value="">Seleccione un cliente</option>
-                            <!-- Options se cargarÃ¡n dinÃ¡micamente -->
+                            <!-- Options se cargarán dinámicamente -->
                         </select>
                         <span class="error-message" id="clientError"></span>
                     </div>
 
                     <div class="form-group">
                         <label for="storeNumber" class="form-label">
-                            NÃºmero de Tienda <span class="required">*</span>
+                            Número de Tienda <span class="required">*</span>
                         </label>
                         <input 
                             type="number" 
@@ -103,16 +103,16 @@
                 </div>
             </section>
 
-            <!-- Evidencia FotogrÃ¡fica -->
+            <!-- Evidencia Fotográfica -->
             <section class="form-section">
                 <h2 class="section-title">
-                    Evidencia FotogrÃ¡fica
+                    Evidencia Fotográfica
                     <span class="section-subtitle">3 fotos de asistencia + 1 foto del ticket</span>
                 </h2>
 
                 <!-- Fotos de Asistencia -->
                 <div class="photo-grid" id="attendancePhotos">
-                    <button type="button" class="photo-upload-container" data-photo-id="1">
+                    <div class="photo-upload-container" data-photo-id="1">
                         <div class="photo-placeholder">
                             <svg class="camera-icon" viewBox="0 0 24 24">
                                 <path d="M12 15.2A3.2 3.2 0 1 1 15.2 12 3.2 3.2 0 0 1 12 15.2zm0-4.8A1.6 1.6 0 1 0 13.6 12 1.6 1.6 0 0 0 12 10.4z"/>
@@ -126,10 +126,9 @@
                             <button type="button" class="photo-remove" aria-label="Eliminar foto">×</button>
                             <div class="photo-timestamp" id="timestamp1"></div>
                         </div>
-                    </button>
+                    </div>
 
-                    <button type="button" class="photo-upload-container" data-photo-id="2">
-                    <button type="button" class="photo-upload-container" data-photo-id="2">
+                    <div class="photo-upload-container" data-photo-id="2">
                         <div class="photo-placeholder">
                             <svg class="camera-icon" viewBox="0 0 24 24">
                                 <path d="M12 15.2A3.2 3.2 0 1 1 15.2 12 3.2 3.2 0 0 1 12 15.2zm0-4.8A1.6 1.6 0 1 0 13.6 12 1.6 1.6 0 0 0 12 10.4z"/>
@@ -143,9 +142,9 @@
                             <button type="button" class="photo-remove" aria-label="Eliminar foto">×</button>
                             <div class="photo-timestamp" id="timestamp2"></div>
                         </div>
-                    </button>
+                    </div>
 
-                    <button type="button" class="photo-upload-container" data-photo-id="3">
+                    <div class="photo-upload-container" data-photo-id="3">
                         <div class="photo-placeholder">
                             <svg class="camera-icon" viewBox="0 0 24 24">
                                 <path d="M12 15.2A3.2 3.2 0 1 1 15.2 12 3.2 3.2 0 0 1 12 15.2zm0-4.8A1.6 1.6 0 1 0 13.6 12 1.6 1.6 0 0 0 12 10.4z"/>
@@ -159,13 +158,13 @@
                             <button type="button" class="photo-remove" aria-label="Eliminar foto">×</button>
                             <div class="photo-timestamp" id="timestamp3"></div>
                         </div>
-                    </button>
+                    </div>
                 </div>
 
                 <!-- Foto del Ticket -->
                 <div class="ticket-section">
                     <h3 class="subsection-title">Ticket de Compra</h3>
-                    <button type="button" class="photo-upload-container photo-upload-ticket" data-photo-id="ticket">
+                    <div class="photo-upload-container photo-upload-ticket" data-photo-id="ticket">
                         <div class="photo-placeholder">
                             <svg class="ticket-icon" viewBox="0 0 24 24">
                                 <path d="M20 12v-1.707c0-.4-.159-.784-.44-1.06l-1.06-1.06a3 3 0 1 1 0-4.243l1.06-1.06c.281-.281.44-.66.44-1.06V2a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v.793c0 .4.159.784.44 1.06l1.06 1.06a3 3 0 0 1 0 4.243l-1.06 1.06c-.281.281-.44.66-.44 1.06V12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2zM14 6h-4v2h4V6zm0 4h-4v2h4v-2z"/>
@@ -178,18 +177,18 @@
                             <button type="button" class="photo-remove" aria-label="Eliminar foto">×</button>
                             <div class="photo-timestamp" id="timestampTicket"></div>
                         </div>
-                    </button>
+                    </div>
                 </div>
             </section>
 
-            <!-- InformaciÃ³n de UbicaciÃ³n -->
+            <!-- Información de Ubicación -->
             <section class="form-section">
                 <div class="location-status" id="locationStatus">
                     <svg class="location-icon" viewBox="0 0 24 24">
                         <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
                     </svg>
                     <div class="location-info">
-                        <span class="location-status-text">Obteniendo ubicaciÃ³n...</span>
+                        <span class="location-status-text">Obteniendo ubicación...</span>
                         <span class="location-coords" id="locationCoords"></span>
                     </div>
                     <button type="button" class="btn-retry-location" id="retryLocationBtn" style="display: none;">
@@ -201,7 +200,7 @@
                 </div>
             </section>
 
-            <!-- BotÃ³n de EnvÃ­o -->
+            <!-- Botón de Envío -->
             <section class="form-section">
                 <button type="submit" class="btn btn-primary" id="submitBtn">
                     <span class="btn-text">Enviar Asistencia</span>
@@ -216,7 +215,7 @@
                 <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
             </svg>
             <div class="alert-content">
-                <strong>Â¡Asistencia Registrada!</strong>
+                <strong>¡Asistencia Registrada!</strong>
                 <p>Su asistencia ha sido enviada correctamente.</p>
             </div>
         </div>
@@ -235,10 +234,6 @@
     <!-- Scripts -->
     <script src="js/config.js"></script>
     <script src="js/utils.js"></script>
-    <script src="js/photo-handler.js"></script>
-    <script src="js/location-handler.js"></script>
-    <script src="js/form-validator.js"></script>
-    <script src="js/api-client.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
