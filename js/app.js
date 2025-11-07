@@ -10,6 +10,7 @@ class AttendanceApp {
     this.timestamps = {};
     this.location = null;
     this.isSubmitting = false;
+    this.photoClickDebounce = {}; // Para prevenir doble apertura
     
     this.init();
   }
@@ -108,22 +109,56 @@ class AttendanceApp {
       this.retryLocationBtn.addEventListener('click', () => this.retryLocation());
     }
     
-    // Eventos de captura de fotos
+    // Eventos de captura de fotos - CORREGIDO
     const photoContainers = document.querySelectorAll('.photo-upload-container');
     photoContainers.forEach(container => {
       const photoId = container.dataset.photoId;
       const input = container.querySelector('.photo-input');
       const removeBtn = container.querySelector('.photo-remove');
       
-      // Click en el contenedor
+      // Inicializar debounce para este contenedor
+      this.photoClickDebounce[photoId] = false;
+      
+      // Click en el contenedor - CORREGIDO para prevenir doble apertura
       container.addEventListener('click', (e) => {
-        if (!e.target.closest('.photo-remove') && !container.classList.contains('has-photo')) {
-          input.click();
+        // Prevenir si ya hay una apertura en progreso
+        if (this.photoClickDebounce[photoId]) {
+          return;
         }
+        
+        // Prevenir si se hizo click en botón de eliminar
+        if (e.target.closest('.photo-remove')) {
+          return;
+        }
+        
+        // Prevenir si ya hay foto cargada
+        if (container.classList.contains('has-photo')) {
+          return;
+        }
+        
+        // Activar debounce
+        this.photoClickDebounce[photoId] = true;
+        
+        // Abrir diálogo de archivo
+        input.click();
+        
+        // Resetear debounce después de 1 segundo
+        setTimeout(() => {
+          this.photoClickDebounce[photoId] = false;
+        }, 1000);
       });
       
-      // Cambio en el input de archivo
-      input.addEventListener('change', (e) => this.handlePhotoCapture(e, photoId));
+      // Cambio en el input de archivo - MEJORADO para iOS
+      input.addEventListener('change', (e) => {
+        // Resetear debounce inmediatamente al seleccionar archivo
+        this.photoClickDebounce[photoId] = false;
+        this.handlePhotoCapture(e, photoId);
+      });
+      
+      // También resetear si se cancela la selección
+      input.addEventListener('cancel', () => {
+        this.photoClickDebounce[photoId] = false;
+      });
       
       // Botón de eliminar foto
       if (removeBtn) {
@@ -279,11 +314,31 @@ class AttendanceApp {
   }
 
   /**
-   * Manejar captura de foto
+   * Manejar captura de foto - MEJORADO para iOS
    */
   async handlePhotoCapture(event, photoId) {
     const file = event.target.files[0];
-    if (!file) return;
+    
+    // MEJORADO: Mejor manejo de iOS
+    if (!file) {
+      // En iOS, a veces el evento se dispara sin archivo
+      console.warn(`No se pudo obtener archivo para foto ${photoId}`);
+      
+      // Mostrar mensaje específico para iOS
+      if (Utils.isIOS()) {
+        this.showError('Por favor, intente capturar la foto nuevamente');
+      }
+      return;
+    }
+    
+    // Log para debug en iOS
+    if (Config.dev.enableLogs) {
+      console.log(`📸 Procesando foto ${photoId}:`, {
+        name: file.name,
+        size: file.size,
+        type: file.type
+      });
+    }
     
     try {
       // Validar tamaño
@@ -308,6 +363,11 @@ class AttendanceApp {
         imageData = await Utils.fileToBase64(file);
       }
       
+      // VALIDACIÓN: Asegurar que imageData tiene contenido
+      if (!imageData || imageData.length < 100) {
+        throw new Error('Imagen procesada está vacía o corrupta');
+      }
+      
       // Agregar timestamp si está habilitado
       const timestamp = Utils.formatDateTime();
       if (Config.features.enableTimestamps) {
@@ -323,13 +383,17 @@ class AttendanceApp {
       
       // Mostrar mensaje de éxito
       if (Config.dev.enableLogs) {
-        console.log(`✅ Foto ${photoId} capturada`);
+        console.log(`✅ Foto ${photoId} capturada correctamente`);
       }
       
     } catch (error) {
       console.error('Error procesando foto:', error);
-      this.showError('Error al procesar la foto');
+      this.showError('Error al procesar la foto. Por favor, intente nuevamente.');
       event.target.value = '';
+      
+      // Limpiar datos si hubo error
+      delete this.photoData[photoId];
+      delete this.timestamps[photoId];
     }
   }
 
@@ -369,6 +433,9 @@ class AttendanceApp {
     input.value = '';
     preview.src = '';
     container.classList.remove('has-photo');
+    
+    // Resetear debounce
+    this.photoClickDebounce[photoId] = false;
     
     if (Config.dev.enableLogs) {
       console.log(`🗑️ Foto ${photoId} eliminada`);
@@ -427,7 +494,7 @@ class AttendanceApp {
   }
 
   /**
-   * Validar formulario completo
+   * Validar formulario completo - MEJORADO
    */
   validateForm() {
     let isValid = true;
@@ -440,16 +507,33 @@ class AttendanceApp {
       }
     });
     
-    // Validar fotos
+    // Validar fotos - MEJORADO
     const requiredPhotos = ['1', '2', '3', 'ticket'];
-    const missingPhotos = requiredPhotos.filter(id => !this.photoData[id]);
+    const missingPhotos = [];
+    
+    requiredPhotos.forEach(id => {
+      const photoExists = this.photoData[id] && this.photoData[id].length > 100;
+      if (!photoExists) {
+        missingPhotos.push(id);
+      }
+    });
     
     if (missingPhotos.length > 0) {
+      // Determinar mensaje específico
+      let errorMsg;
       if (missingPhotos.includes('ticket')) {
-        this.showError(Config.messages.errors.ticketRequired);
+        errorMsg = Config.messages.errors.ticketRequired;
       } else {
-        this.showError(Config.messages.errors.photosRequired);
+        errorMsg = Config.messages.errors.photosRequired;
       }
+      
+      this.showError(errorMsg);
+      
+      // Log para debug
+      if (Config.dev.enableLogs) {
+        console.log('❌ Fotos faltantes:', missingPhotos);
+      }
+      
       isValid = false;
     }
     
