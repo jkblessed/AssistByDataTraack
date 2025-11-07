@@ -1,0 +1,276 @@
+/* ========================================================================
+   Estilos para Procesamiento de Fotos - Photo Capture System
+   ======================================================================== */
+
+/* Indicador de procesamiento para fotos */
+.photo-upload-container.processing {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.photo-upload-container.processing .photo-placeholder {
+  display: flex !important;
+}
+
+.processing-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: var(--spacing-sm);
+}
+
+/* Toast notifications mejoradas */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--primary-color);
+  color: white;
+  padding: 12px 24px;
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 10000;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-10px);
+}
+
+.toast.toast-success {
+  background: var(--success-color);
+}
+
+.toast.toast-error {
+  background: var(--error-color);
+}
+
+.toast.toast-info {
+  background: var(--info-color);
+}
+
+/* Mejoras para el input de fotos en móviles */
+.photo-input {
+  /* Asegurar que el input capture sea accesible */
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 2;
+  top: 0;
+  left: 0;
+}
+
+/* Asegurar que el contenedor sea clickeable */
+.photo-upload-container {
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+}
+
+/* Preview mejorado para asegurar que la imagen se muestre */
+.photo-preview-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 150px;
+}
+
+.photo-upload-container.has-photo .photo-preview {
+  display: block !important;
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+}
+
+/* Asegurar que el placeholder se oculte cuando hay foto */
+.photo-upload-container.has-photo .photo-placeholder {
+  display: none !important;
+}
+
+/* Mejorar el botón de eliminar foto */
+.photo-remove {
+  position: absolute;
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+  border: none;
+  border-radius: var(--radius-full);
+  width: 32px;
+  height: 32px;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  z-index: 3;
+  backdrop-filter: blur(5px);
+  transition: all var(--transition-fast);
+  padding: 0;
+}
+
+.photo-remove:hover {
+  background: rgba(239, 68, 68, 1);
+  transform: scale(1.1);
+}
+
+.photo-remove:active {
+  transform: scale(0.95);
+}
+
+/* Timestamp mejorado */
+.photo-timestamp {
+  position: absolute;
+  bottom: var(--spacing-sm);
+  left: var(--spacing-sm);
+  background: rgba(0, 0, 0, 0.85);
+  color: white;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 0.7rem;
+  font-family: var(--font-mono);
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  z-index: 2;
+}
+
+/* Mejoras específicas para iOS */
+@supports (-webkit-overflow-scrolling: touch) {
+  .photo-input {
+    /* iOS necesita esto para funcionar correctamente */
+    -webkit-appearance: none;
+  }
+  
+  .photo-upload-container {
+    /* Prevenir problemas de touch en iOS */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+}
+
+/* Animaciones suaves para cambios de estado */
+.photo-upload-container {
+  transition: all var(--transition-base);
+}
+
+.photo-upload-container:active {
+  transform: scale(0.98);
+}
+
+/* Loading state más visible */
+.btn.loading {
+  position: relative;
+  color: transparent;
+}
+
+.btn.loading::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  top: 50%;
+  left: 50%;
+  margin-left: -10px;
+  margin-top: -10px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* Mejorar visibilidad de errores */
+.error-message.active {
+  display: block;
+  animation: shake 0.3s ease;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+/* Feedback visual al capturar foto */
+@keyframes photoCapture {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+.photo-upload-container.capturing {
+  animation: photoCapture 0.3s ease;
+}
+
+/* Mejoras para pantallas táctiles */
+@media (hover: none) and (pointer: coarse) {
+  .photo-upload-container {
+    min-height: 200px;
+  }
+  
+  .photo-remove {
+    width: 40px;
+    height: 40px;
+    font-size: 1.75rem;
+  }
+  
+  .camera-icon,
+  .ticket-icon {
+    width: 56px;
+    height: 56px;
+  }
+}
+
+/* Fix para Android WebView */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  .photo-input {
+    /* Asegurar que funcione en Android WebView */
+    position: absolute !important;
+    opacity: 0 !important;
+  }
+}
+
+/* Asegurar que las fotos no se superpongan */
+.photo-preview-container {
+  position: relative;
+  z-index: 1;
+}
+
+.photo-placeholder {
+  position: relative;
+  z-index: 0;
+}
+
+/* Mejoras para modo oscuro (ya aplicado pero reforzado) */
+.form-input:focus,
+.form-select:focus {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(147, 197, 253, 0.6);
+  box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.15);
+}
+
+/* Prevenir selección de texto no deseada */
+.photo-upload-container * {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.photo-input {
+  user-select: none;
+  -webkit-user-select: none;
+}

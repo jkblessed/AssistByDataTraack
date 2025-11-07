@@ -1,6 +1,7 @@
 /**
  * Utilidades y Funciones Helper
  * @module utils
+ * VERSIÓN MEJORADA CON FIX PARA PROCESAMIENTO DE IMÁGENES EN MÓVILES
  */
 
 const Utils = {
@@ -11,14 +12,20 @@ const Utils = {
    * @returns {string} Fecha formateada
    */
   formatDateTime(date = new Date(), options = {}) {
-    const defaultOptions = {
-      locale: 'es-MX',
-      ...Config.photos.timestampFormat.options,
-      ...options
-    };
-    
-    return new Intl.DateTimeFormat(Config.photos.timestampFormat.locale, defaultOptions)
-      .format(date);
+    try {
+      const defaultOptions = {
+        locale: 'es-MX',
+        ...Config.photos.timestampFormat.options,
+        ...options
+      };
+      
+      return new Intl.DateTimeFormat(Config.photos.timestampFormat.locale, defaultOptions)
+        .format(date);
+    } catch (error) {
+      console.error('Error formateando fecha:', error);
+      // Fallback simple
+      return new Date().toLocaleString('es-MX');
+    }
   },
 
   /**
@@ -40,7 +47,7 @@ const Utils = {
   },
 
   /**
-   * Comprimir imagen
+   * Comprimir imagen - VERSIÓN MEJORADA
    * @param {File|Blob} file - Archivo de imagen
    * @param {Object} options - Opciones de compresión
    * @returns {Promise<string>} Data URL de imagen comprimida
@@ -53,109 +60,227 @@ const Utils = {
     } = options;
 
     return new Promise((resolve, reject) => {
+      // Timeout para prevenir bloqueos
+      const timeoutId = setTimeout(() => {
+        reject(new Error('Timeout comprimiendo imagen'));
+      }, 15000); // 15 segundos
+
       const reader = new FileReader();
       
       reader.onload = (e) => {
         const img = new Image();
         
+        // Timeout para carga de imagen
+        const imgLoadTimeout = setTimeout(() => {
+          clearTimeout(timeoutId);
+          reject(new Error('Timeout cargando imagen'));
+        }, 10000);
+        
         img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
+          clearTimeout(imgLoadTimeout);
           
-          // Calcular nuevas dimensiones
-          let { width, height } = img;
-          
-          if (width > maxWidth || height > maxHeight) {
-            const ratio = Math.min(maxWidth / width, maxHeight / height);
-            width *= ratio;
-            height *= ratio;
+          try {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            if (!ctx) {
+              throw new Error('No se pudo obtener contexto de canvas');
+            }
+            
+            // Calcular nuevas dimensiones
+            let { width, height } = img;
+            
+            console.log(`Dimensiones originales: ${width}x${height}`);
+            
+            if (width > maxWidth || height > maxHeight) {
+              const ratio = Math.min(maxWidth / width, maxHeight / height);
+              width = Math.floor(width * ratio);
+              height = Math.floor(height * ratio);
+              console.log(`Nuevas dimensiones: ${width}x${height}`);
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            
+            // Dibujar imagen con interpolación suave
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            // Convertir a data URL con manejo de errores
+            try {
+              const dataUrl = canvas.toDataURL('image/jpeg', quality);
+              clearTimeout(timeoutId);
+              
+              console.log(`Imagen comprimida: ${dataUrl.length} caracteres`);
+              resolve(dataUrl);
+            } catch (canvasError) {
+              clearTimeout(timeoutId);
+              console.error('Error en toDataURL:', canvasError);
+              reject(new Error('Error convirtiendo canvas a imagen'));
+            }
+          } catch (error) {
+            clearTimeout(timeoutId);
+            console.error('Error procesando imagen:', error);
+            reject(error);
           }
-          
-          canvas.width = width;
-          canvas.height = height;
-          
-          // Dibujar imagen
-          ctx.drawImage(img, 0, 0, width, height);
-          
-          // Convertir a data URL
-          const dataUrl = canvas.toDataURL('image/jpeg', quality);
-          resolve(dataUrl);
         };
         
-        img.onerror = reject;
-        img.src = e.target.result;
+        img.onerror = (error) => {
+          clearTimeout(imgLoadTimeout);
+          clearTimeout(timeoutId);
+          console.error('Error cargando imagen:', error);
+          reject(new Error('Error cargando imagen para procesamiento'));
+        };
+        
+        try {
+          img.src = e.target.result;
+        } catch (error) {
+          clearTimeout(imgLoadTimeout);
+          clearTimeout(timeoutId);
+          reject(new Error('Error estableciendo source de imagen'));
+        }
       };
       
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
+      reader.onerror = (error) => {
+        clearTimeout(timeoutId);
+        console.error('Error leyendo archivo:', error);
+        reject(new Error('Error leyendo archivo'));
+      };
+      
+      try {
+        reader.readAsDataURL(file);
+      } catch (error) {
+        clearTimeout(timeoutId);
+        reject(new Error('Error iniciando lectura de archivo'));
+      }
     });
   },
 
   /**
-   * Agregar timestamp a imagen
+   * Agregar timestamp a imagen - VERSIÓN MEJORADA
    * @param {string} imageData - Data URL de la imagen
    * @param {string} timestamp - Timestamp a agregar
    * @returns {Promise<string>} Data URL con timestamp
    */
   async addTimestampToImage(imageData, timestamp) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
+      // Timeout de seguridad
+      const timeoutId = setTimeout(() => {
+        reject(new Error('Timeout agregando timestamp'));
+      }, 10000);
+
       const img = new Image();
       
       img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        canvas.width = img.width;
-        canvas.height = img.height;
-        
-        // Dibujar imagen
-        ctx.drawImage(img, 0, 0);
-        
-        // Configurar estilo de timestamp
-        const padding = 10;
-        const fontSize = Math.max(16, img.width * 0.025);
-        ctx.font = `${fontSize}px Arial`;
-        
-        // Medir texto
-        const textMetrics = ctx.measureText(timestamp);
-        const textHeight = fontSize * 1.2;
-        
-        // Dibujar fondo del timestamp
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(
-          padding,
-          img.height - textHeight - padding * 2,
-          textMetrics.width + padding * 2,
-          textHeight + padding
-        );
-        
-        // Dibujar texto
-        ctx.fillStyle = 'white';
-        ctx.fillText(
-          timestamp,
-          padding * 1.5,
-          img.height - padding * 1.5
-        );
-        
-        // Retornar imagen con timestamp
-        resolve(canvas.toDataURL('image/jpeg', Config.photos.quality));
+        try {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          
+          if (!ctx) {
+            throw new Error('No se pudo obtener contexto de canvas');
+          }
+          
+          canvas.width = img.width;
+          canvas.height = img.height;
+          
+          // Dibujar imagen
+          ctx.drawImage(img, 0, 0);
+          
+          // Configurar estilo de timestamp
+          const padding = Math.max(10, img.width * 0.02);
+          const fontSize = Math.max(12, Math.min(20, img.width * 0.03));
+          
+          // Configurar fuente
+          ctx.font = `${fontSize}px Arial, sans-serif`;
+          ctx.textBaseline = 'bottom';
+          
+          // Medir texto
+          const textMetrics = ctx.measureText(timestamp);
+          const textWidth = textMetrics.width;
+          const textHeight = fontSize * 1.5;
+          
+          // Posición del timestamp (abajo a la izquierda)
+          const x = padding;
+          const y = img.height - padding;
+          
+          // Dibujar fondo con borde
+          const bgPadding = padding * 0.8;
+          const bgX = x - bgPadding;
+          const bgY = y - textHeight - bgPadding;
+          const bgWidth = textWidth + (bgPadding * 2);
+          const bgHeight = textHeight + (bgPadding * 1.5);
+          
+          // Fondo semi-transparente
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+          ctx.fillRect(bgX, bgY, bgWidth, bgHeight);
+          
+          // Borde sutil
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(bgX, bgY, bgWidth, bgHeight);
+          
+          // Dibujar texto
+          ctx.fillStyle = '#ffffff';
+          ctx.fillText(timestamp, x, y - bgPadding);
+          
+          // Retornar imagen con timestamp
+          const resultDataUrl = canvas.toDataURL('image/jpeg', Config.photos.quality);
+          clearTimeout(timeoutId);
+          resolve(resultDataUrl);
+        } catch (error) {
+          clearTimeout(timeoutId);
+          console.error('Error agregando timestamp:', error);
+          reject(error);
+        }
       };
       
-      img.src = imageData;
+      img.onerror = (error) => {
+        clearTimeout(timeoutId);
+        console.error('Error cargando imagen para timestamp:', error);
+        reject(new Error('Error cargando imagen para agregar timestamp'));
+      };
+      
+      try {
+        img.src = imageData;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        reject(new Error('Error estableciendo source de imagen'));
+      }
     });
   },
 
   /**
-   * Convertir archivo a Base64
+   * Convertir archivo a Base64 - VERSIÓN MEJORADA
    * @param {File} file - Archivo a convertir
    * @returns {Promise<string>} String en Base64
    */
   fileToBase64(file) {
     return new Promise((resolve, reject) => {
+      // Timeout de seguridad
+      const timeoutId = setTimeout(() => {
+        reject(new Error('Timeout convirtiendo archivo a Base64'));
+      }, 15000);
+
       const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
+      
+      reader.onload = () => {
+        clearTimeout(timeoutId);
+        resolve(reader.result);
+      };
+      
+      reader.onerror = (error) => {
+        clearTimeout(timeoutId);
+        console.error('Error en FileReader:', error);
+        reject(new Error('Error leyendo archivo'));
+      };
+      
+      try {
+        reader.readAsDataURL(file);
+      } catch (error) {
+        clearTimeout(timeoutId);
+        reject(new Error('Error iniciando lectura de archivo'));
+      }
     });
   },
 
@@ -166,6 +291,7 @@ const Utils = {
    * @returns {boolean} True si el tamaño es válido
    */
   validateFileSize(file, maxSize = Config.photos.maxSize) {
+    if (!file) return false;
     return file.size <= maxSize;
   },
 
@@ -176,6 +302,7 @@ const Utils = {
    * @returns {boolean} True si el tipo es válido
    */
   validateFileType(file, allowedTypes = Config.photos.allowedTypes) {
+    if (!file) return false;
     return allowedTypes.includes(file.type);
   },
 
@@ -433,5 +560,5 @@ window.Utils = Utils;
 
 // Log de utilidades en modo desarrollo
 if (Config.dev.debug && Config.dev.enableLogs) {
-  console.log('🔧 Utilidades cargadas');
+  console.log('🔧 Utilidades cargadas (versión mejorada)');
 }

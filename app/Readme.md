@@ -13,15 +13,12 @@ attendance-system/
 ├── css/
 │   ├── normalize.css          # Reset de estilos del navegador
 │   ├── styles.css             # Estilos principales
-│   └── responsive.css         # Media queries y responsive design
+│   ├── responsive.css         # Media queries y responsive design
+│   └── photo.css              # Estilos para captura de fotos (NUEVO)
 │
 ├── js/
 │   ├── config.js              # Configuración global del sistema
 │   ├── utils.js               # Funciones de utilidad
-│   ├── photo-handler.js       # Manejo de fotos (crear este archivo)
-│   ├── location-handler.js    # Manejo de geolocalización (crear este archivo)
-│   ├── form-validator.js      # Validación de formularios (crear este archivo)
-│   ├── api-client.js          # Cliente para comunicación con API (crear este archivo)
 │   └── app.js                 # Aplicación principal
 │
 └── assets/
@@ -53,6 +50,17 @@ Editar `js/config.js` línea 10:
 ```javascript
 webhookUrl: 'https://tu-dominio-n8n.com/webhook/attendance',
 // Cambiar por tu URL real de n8n
+```
+
+3. **Agregar photo.css al HTML**:
+
+En `index.html`, después de las otras hojas de estilo:
+```html
+<!-- Estilos -->
+<link rel="stylesheet" href="css/normalize.css">
+<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/responsive.css">
+<link rel="stylesheet" href="css/photo.css"> <!-- NUEVO -->
 ```
 
 ### 2️⃣ Personalización de la Empresa
@@ -108,9 +116,239 @@ if (!this.validateAuthCode(authCode)) {
 }
 ```
 
-### 4️⃣ Archivos Adicionales a Crear
+---
 
-#### `manifest.json` (PWA Configuration):
+## 🔧 Fix para Captura de Fotos en Móviles
+
+### 📱 Problema Identificado
+
+**Síntoma:** Al intentar capturar fotos en dispositivos móviles:
+- Usuario captura foto
+- Presiona "Usar foto"
+- La foto no aparece en el preview
+- No hay feedback visual
+- El proceso falla silenciosamente
+
+### 🎯 Causa del Problema
+
+El sistema original no manejaba correctamente:
+- ❌ Errores en la compresión de imágenes
+- ❌ Timeouts en procesamiento de archivos grandes
+- ❌ Falta de feedback visual para el usuario
+- ❌ Sin fallbacks cuando algo falla
+
+### ✅ Solución Implementada
+
+Los archivos `app.js` y `utils.js` actualizados incluyen:
+
+1. **Logging Extensivo**: Ver exactamente qué está pasando en cada paso
+2. **Manejo de Errores**: Try-catch en todos los puntos críticos
+3. **Timeouts**: Previene bloqueos con archivos grandes
+4. **Fallbacks**: Si falla la compresión, usa método alternativo
+5. **Feedback Visual**: Spinner y notificaciones toast
+
+### 🚀 Implementación del Fix
+
+#### Opción A: Reemplazo Completo (Recomendado)
+
+1. **Hacer backup**:
+```bash
+cp js/app.js js/app.js.backup
+cp js/utils.js js/utils.js.backup
+```
+
+2. **Reemplazar archivos**:
+   - Reemplaza `js/app.js` con la versión mejorada
+   - Reemplaza `js/utils.js` con la versión mejorada
+   - Agrega `css/photo.css` nuevo
+
+3. **Actualizar index.html** (si no lo hiciste en paso 1):
+```html
+<link rel="stylesheet" href="css/photo.css">
+```
+
+4. **Activar logs** en `js/config.js`:
+```javascript
+dev: {
+  enableLogs: true  // Cambiar a true para debugging
+}
+```
+
+5. **Probar en móvil**:
+   - Abrir consola del navegador (Chrome DevTools Remote)
+   - Intentar capturar foto
+   - Verificar logs en consola
+
+#### Opción B: Parche Mínimo
+
+Si prefieres hacer solo los cambios esenciales, edita estos métodos:
+
+**En `app.js`, agregar logging:**
+```javascript
+constructor() {
+  // ... código existente ...
+  this.debugMode = true; // AGREGAR
+}
+
+// AGREGAR este método
+log(message, data = null) {
+  if (this.debugMode || Config.dev.enableLogs) {
+    console.log(`[AttendanceApp] ${message}`, data || '');
+  }
+}
+```
+
+**En `utils.js`, agregar timeout a `compressImage`:**
+```javascript
+async compressImage(file, options = {}) {
+  return new Promise((resolve, reject) => {
+    // AGREGAR timeout
+    const timeoutId = setTimeout(() => {
+      reject(new Error('Timeout comprimiendo imagen'));
+    }, 15000);
+
+    // ... resto del código ...
+    
+    // IMPORTANTE: Limpiar timeout antes de resolve/reject
+    clearTimeout(timeoutId);
+    resolve(dataUrl);
+  });
+}
+```
+
+### 📊 Qué Esperar Después del Fix
+
+#### ✅ Comportamiento Correcto
+
+Cuando captures una foto verás:
+1. **Spinner** de "Procesando..." mientras se procesa
+2. **Notificación verde** "Foto X capturada correctamente"
+3. **Preview** de la foto inmediatamente visible
+4. **Borde verde** alrededor del contenedor
+
+#### 📝 Logs en Consola
+
+Con `enableLogs: true` verás:
+```
+[AttendanceApp] 📸 Iniciando captura de foto 1
+[AttendanceApp] 📁 Archivo seleccionado: IMG_1234.jpg, 2456789 bytes, image/jpeg
+[AttendanceApp] ✅ Validaciones pasadas para 1
+[AttendanceApp] 🔄 Comprimiendo imagen 1...
+Dimensiones originales: 3024x4032
+Nuevas dimensiones: 1440x1920
+[AttendanceApp] ✅ Imagen comprimida 1
+[AttendanceApp] 🔄 Agregando timestamp a 1...
+[AttendanceApp] ✅ Timestamp agregado a 1
+[AttendanceApp] 💾 Datos guardados para 1
+[AttendanceApp] ✅ Foto 1 capturada exitosamente
+```
+
+### 🐛 Troubleshooting
+
+#### Problema: Fotos aún no se capturan
+
+**Paso 1: Verificar logs**
+```javascript
+// Abrir consola (F12)
+// Buscar dónde se detiene el proceso
+
+// Si ves "📸 Iniciando..." pero nada más:
+//   → Problema en validación de archivo
+
+// Si ves "🔄 Comprimiendo..." pero se detiene:
+//   → Problema en compresión
+```
+
+**Paso 2: Desactivar compresión temporalmente**
+```javascript
+// En config.js
+features: {
+  enableCompression: false,  // Desactivar
+  enableTimestamps: false    // Desactivar
+}
+```
+
+**Paso 3: Si ahora funciona**
+```javascript
+// El problema era compresión de imágenes
+// Solución: Reducir dimensiones
+
+photos: {
+  maxWidth: 1280,    // Reducir de 1920
+  maxHeight: 1280,   // Reducir de 1920
+  quality: 0.7       // Reducir de 0.8
+}
+```
+
+#### Problema: "Timeout comprimiendo imagen"
+
+```javascript
+// Aumentar timeout en utils.js
+setTimeout(() => {
+  reject(new Error('Timeout...'));
+}, 30000);  // Aumentar de 15000 a 30000
+```
+
+#### Problema: No veo los logs
+
+```javascript
+// Verificar en config.js
+dev: {
+  enableLogs: true  // DEBE estar en true
+}
+
+// También en app.js
+constructor() {
+  this.debugMode = true;  // Forzar debug
+}
+```
+
+### 📱 Herramienta de Diagnóstico
+
+Incluimos `diagnostico-fotos.html` para probar ANTES de implementar:
+
+1. Sube `diagnostico-fotos.html` a tu servidor
+2. Accede desde móvil: `https://tudominio.com/diagnostico-fotos.html`
+3. Intenta capturar foto
+4. Revisa logs y comportamiento
+
+Esta herramienta te mostrará:
+- ✅ Si el dispositivo puede capturar fotos
+- ✅ Información del archivo capturado
+- ✅ Tiempo de procesamiento
+- ✅ Errores específicos si los hay
+
+### ⚙️ Configuraciones Recomendadas
+
+#### Para Dispositivos Lentos
+```javascript
+photos: {
+  maxSize: 3 * 1024 * 1024,  // 3MB en vez de 5MB
+  quality: 0.6,              // Menor calidad
+  maxWidth: 1024,
+  maxHeight: 1024
+}
+```
+
+#### Para Conexiones Lentas
+```javascript
+api: {
+  timeout: 60000  // 60 segundos en vez de 30
+}
+```
+
+#### Para Acelerar Procesamiento
+```javascript
+features: {
+  enableTimestamps: false  // Desactivar marcas de agua
+}
+```
+
+---
+
+## 📋 Archivos Adicionales a Crear
+
+### `manifest.json` (PWA Configuration):
 ```json
 {
   "name": "Control de Asistencias",
@@ -137,7 +375,7 @@ if (!this.validateAuthCode(authCode)) {
 }
 ```
 
-#### `sw.js` (Service Worker básico):
+### `sw.js` (Service Worker básico):
 ```javascript
 const CACHE_NAME = 'attendance-v1';
 const urlsToCache = [
@@ -145,6 +383,7 @@ const urlsToCache = [
   '/css/normalize.css',
   '/css/styles.css',
   '/css/responsive.css',
+  '/css/photo.css',
   '/js/config.js',
   '/js/utils.js',
   '/js/app.js'
@@ -188,7 +427,32 @@ self.addEventListener('fetch', event => {
 </IfModule>
 ```
 
-### Opción B: Nginx (ya proporcionado anteriormente)
+### Opción B: Nginx
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name tudominio.com;
+    
+    ssl_certificate /path/to/cert.pem;
+    ssl_certificate_key /path/to/key.pem;
+    
+    root /var/www/attendance-system;
+    index index.html;
+    
+    # Comprimir recursos
+    gzip on;
+    gzip_types text/css application/javascript application/json;
+    
+    # Headers de seguridad
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+```
 
 ## 🧪 Testing Local
 
@@ -289,9 +553,11 @@ if (typeof gtag !== 'undefined') {
 |----------|----------|
 | Cámara no funciona | Verificar HTTPS y permisos del navegador |
 | Geolocalización falla | Verificar permisos y HTTPS |
-| Fotos no se envían | Verificar tamaño < 5MB |
+| Fotos no se capturan | Ver sección "Fix para Captura de Fotos" arriba |
+| Fotos no se envían | Verificar tamaño < 5MB y logs en consola |
 | Error de CORS | Configurar headers en n8n |
 | No carga en iPhone | Verificar certificado SSL válido |
+| Timeout procesando | Reducir dimensiones o aumentar timeout |
 
 ## 📈 Mejoras Futuras Recomendadas
 
@@ -300,7 +566,7 @@ if (typeof gtag !== 'undefined') {
    - Sincronizar cuando hay conexión
 
 2. **Compresión Inteligente**:
-   - Detectar calidad de red
+   - Detectar velocidad de red
    - Ajustar compresión automáticamente
 
 3. **Biometría**:
@@ -322,17 +588,77 @@ if (typeof gtag !== 'undefined') {
 - [ ] Certificado SSL válido
 - [ ] CORS configurado correctamente
 
+## ✅ Checklist de Implementación
+
+### Configuración Básica
+- [ ] Estructura de carpetas creada
+- [ ] Webhook de n8n configurado
+- [ ] Logo y branding personalizados
+- [ ] Lista de clientes actualizada
+- [ ] HTTPS habilitado
+
+### Fix de Fotos (IMPORTANTE)
+- [ ] `app.js` actualizado con versión mejorada
+- [ ] `utils.js` actualizado con versión mejorada
+- [ ] `photo.css` agregado
+- [ ] `index.html` incluye referencia a `photo.css`
+- [ ] `enableLogs: true` en `config.js` (temporal)
+- [ ] Probado en Chrome DevTools modo responsive
+- [ ] Probado en dispositivo Android real
+- [ ] Probado en dispositivo iOS real
+- [ ] Logs verificados en consola
+- [ ] Las 4 fotos se capturan correctamente
+
+### Testing
+- [ ] Formulario carga correctamente
+- [ ] Geolocalización funciona
+- [ ] Captura de fotos funciona
+- [ ] Preview de fotos visible
+- [ ] Validación de campos funciona
+- [ ] Envío exitoso de formulario
+- [ ] Datos llegan a n8n correctamente
+
 ## 📞 Soporte
 
 Si necesitas ayuda con la implementación:
 
-1. Revisa la consola del navegador (F12)
-2. Verifica los logs de n8n
-3. Prueba con el test-suite.html proporcionado
-4. Contacta soporte técnico
+1. **Primero**: Usa `diagnostico-fotos.html` para identificar el problema
+2. **Revisa logs**: Consola del navegador (F12) con `enableLogs: true`
+3. **Verifica n8n**: Logs del webhook
+4. **Documenta**: Screenshots de errores, logs de consola, modelo de dispositivo
+
+### Información Útil para Reportar Problemas:
+- Modelo de dispositivo (ej: iPhone 13, Samsung Galaxy S21)
+- Sistema operativo y versión (ej: iOS 16.1, Android 12)
+- Navegador usado (ej: Safari, Chrome)
+- Tamaño de foto que intenta capturar
+- Logs completos de consola
+- ¿En qué paso se detiene?
 
 ---
 
-**Versión:** 1.0.0  
+## 📦 Archivos del Sistema
+
+### Archivos Principales
+- `index.html` - Estructura del formulario
+- `app.js` - Lógica principal de la aplicación
+- `utils.js` - Funciones auxiliares
+- `config.js` - Configuración del sistema
+
+### Archivos de Estilos
+- `normalize.css` - Reset de navegadores
+- `styles.css` - Estilos principales
+- `responsive.css` - Media queries
+- `photo.css` - Estilos para captura de fotos
+
+### Archivos Opcionales
+- `manifest.json` - Configuración PWA
+- `sw.js` - Service worker
+- `diagnostico-fotos.html` - Herramienta de diagnóstico
+
+---
+
+**Versión:** 2.0.0 (con Fix de Captura de Fotos)  
 **Última actualización:** Noviembre 2024  
+**Compatibilidad:** Android 8+, iOS 13+, Chrome 80+, Safari 13+  
 **Desarrollado con ❤️ para optimización de procesos**
