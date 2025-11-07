@@ -1,7 +1,6 @@
 /**
  * Aplicación Principal - Sistema de Control de Asistencias
  * @module app
- * VERSIÓN MEJORADA CON FIX PARA FOTOS EN MÓVILES
  */
 
 class AttendanceApp {
@@ -11,7 +10,6 @@ class AttendanceApp {
     this.timestamps = {};
     this.location = null;
     this.isSubmitting = false;
-    this.debugMode = true; // Activar para ver logs detallados
     
     this.init();
   }
@@ -45,19 +43,12 @@ class AttendanceApp {
       // Ocultar loader de página
       await this.hidePageLoader();
       
-      this.log('✅ Aplicación inicializada correctamente');
+      if (Config.dev.enableLogs) {
+        console.log('✅ Aplicación inicializada correctamente');
+      }
     } catch (error) {
       console.error('Error inicializando aplicación:', error);
       this.showError('Error al inicializar la aplicación');
-    }
-  }
-
-  /**
-   * Log mejorado para debugging
-   */
-  log(message, data = null) {
-    if (this.debugMode || Config.dev.enableLogs) {
-      console.log(`[AttendanceApp] ${message}`, data || '');
     }
   }
 
@@ -117,32 +108,25 @@ class AttendanceApp {
       this.retryLocationBtn.addEventListener('click', () => this.retryLocation());
     }
     
-    // Eventos de captura de fotos - MEJORADO
+    // Eventos de captura de fotos
     const photoContainers = document.querySelectorAll('.photo-upload-container');
     photoContainers.forEach(container => {
       const photoId = container.dataset.photoId;
       const input = container.querySelector('.photo-input');
       const removeBtn = container.querySelector('.photo-remove');
       
-      this.log(`Configurando contenedor de foto: ${photoId}`);
-      
       // Click en el contenedor
       container.addEventListener('click', (e) => {
+        // Si el click fue directamente en el input, no hacer nada (el input ya lo manejó)
+        if (e.target === input) return;
+        
         if (!e.target.closest('.photo-remove') && !container.classList.contains('has-photo')) {
-          this.log(`Click en contenedor ${photoId}, abriendo selector de archivos`);
           input.click();
         }
       });
       
-      // Cambio en el input de archivo - MEJORADO
-      input.addEventListener('change', async (e) => {
-        this.log(`Evento change detectado para ${photoId}`, {
-          filesLength: e.target.files.length,
-          hasFile: !!e.target.files[0]
-        });
-        
-        await this.handlePhotoCapture(e, photoId);
-      });
+      // Cambio en el input de archivo
+      input.addEventListener('change', (e) => this.handlePhotoCapture(e, photoId));
       
       // Botón de eliminar foto
       if (removeBtn) {
@@ -232,7 +216,9 @@ class AttendanceApp {
    * Reintentar obtener ubicación
    */
   async retryLocation() {
-    this.log('🔄 Reintentando obtener ubicación...');
+    if (Config.dev.enableLogs) {
+      console.log('🔄 Reintentando obtener ubicación...');
+    }
     await this.initLocation();
   }
 
@@ -296,225 +282,70 @@ class AttendanceApp {
   }
 
   /**
-   * Manejar captura de foto - VERSIÓN MEJORADA
+   * Manejar captura de foto
    */
   async handlePhotoCapture(event, photoId) {
-    this.log(`📸 Iniciando captura de foto ${photoId}`);
-    
     const file = event.target.files[0];
-    
-    if (!file) {
-      this.log(`⚠️ No se seleccionó ningún archivo para ${photoId}`);
-      return;
-    }
-    
-    this.log(`📁 Archivo seleccionado para ${photoId}:`, {
-      name: file.name,
-      size: file.size,
-      type: file.type
-    });
+    if (!file) return;
     
     try {
-      // Mostrar indicador de procesamiento
-      this.showProcessingIndicator(photoId);
-      
       // Validar tamaño
       if (!Utils.validateFileSize(file)) {
-        this.log(`❌ Archivo muy grande: ${file.size} bytes`);
         this.showError(Config.messages.errors.photoSize);
         event.target.value = '';
-        this.hideProcessingIndicator(photoId);
         return;
       }
       
       // Validar tipo
       if (!Utils.validateFileType(file)) {
-        this.log(`❌ Tipo de archivo no válido: ${file.type}`);
         this.showError(Config.messages.errors.photoType);
         event.target.value = '';
-        this.hideProcessingIndicator(photoId);
         return;
       }
       
-      this.log(`✅ Validaciones pasadas para ${photoId}`);
-      
-      // Procesar imagen con fallback
+      // Comprimir imagen si está habilitado
       let imageData;
-      try {
-        if (Config.features.enableCompression) {
-          this.log(`🔄 Comprimiendo imagen ${photoId}...`);
-          imageData = await Utils.compressImage(file);
-          this.log(`✅ Imagen comprimida ${photoId}`);
-        } else {
-          this.log(`🔄 Convirtiendo a Base64 ${photoId}...`);
-          imageData = await Utils.fileToBase64(file);
-          this.log(`✅ Convertido a Base64 ${photoId}`);
-        }
-      } catch (compressionError) {
-        // Fallback si falla la compresión
-        this.log(`⚠️ Error en compresión, usando fallback para ${photoId}:`, compressionError);
+      if (Config.features.enableCompression) {
+        imageData = await Utils.compressImage(file);
+      } else {
         imageData = await Utils.fileToBase64(file);
-        this.log(`✅ Fallback exitoso ${photoId}`);
       }
       
       // Agregar timestamp si está habilitado
       const timestamp = Utils.formatDateTime();
       if (Config.features.enableTimestamps) {
-        try {
-          this.log(`🔄 Agregando timestamp a ${photoId}...`);
-          imageData = await Utils.addTimestampToImage(imageData, timestamp);
-          this.log(`✅ Timestamp agregado a ${photoId}`);
-        } catch (timestampError) {
-          // Si falla el timestamp, usar la imagen sin timestamp
-          this.log(`⚠️ Error agregando timestamp a ${photoId}, continuando sin él:`, timestampError);
-        }
+        imageData = await Utils.addTimestampToImage(imageData, timestamp);
       }
       
       // Guardar datos
       this.photoData[photoId] = imageData;
       this.timestamps[photoId] = timestamp;
       
-      this.log(`💾 Datos guardados para ${photoId}`);
-      
       // Actualizar UI
       this.updatePhotoUI(photoId, imageData, timestamp);
       
-      // Ocultar indicador de procesamiento
-      this.hideProcessingIndicator(photoId);
-      
       // Mostrar mensaje de éxito
-      this.log(`✅ Foto ${photoId} capturada exitosamente`);
-      
-      // Mostrar confirmación visual
-      this.showToast(`Foto ${photoId} capturada correctamente`, 'success');
+      if (Config.dev.enableLogs) {
+        console.log(`✅ Foto ${photoId} capturada`);
+      }
       
     } catch (error) {
-      console.error(`Error procesando foto ${photoId}:`, error);
-      this.log(`❌ Error fatal procesando ${photoId}:`, error);
-      
-      // Ocultar indicador de procesamiento
-      this.hideProcessingIndicator(photoId);
-      
-      // Mostrar error específico
-      let errorMessage = 'Error al procesar la foto';
-      if (error.message) {
-        errorMessage += ': ' + error.message;
-      }
-      this.showError(errorMessage);
-      
-      // Limpiar input
+      console.error('Error procesando foto:', error);
+      this.showError('Error al procesar la foto');
       event.target.value = '';
     }
-  }
-
-  /**
-   * Mostrar indicador de procesamiento
-   */
-  showProcessingIndicator(photoId) {
-    const container = document.querySelector(`[data-photo-id="${photoId}"]`);
-    if (container) {
-      // Agregar clase de procesamiento
-      container.classList.add('processing');
-      
-      // Agregar spinner
-      const placeholder = container.querySelector('.photo-placeholder');
-      if (placeholder) {
-        placeholder.innerHTML = `
-          <div class="processing-spinner"></div>
-          <span class="photo-label">Procesando...</span>
-        `;
-      }
-    }
-  }
-
-  /**
-   * Ocultar indicador de procesamiento
-   */
-  hideProcessingIndicator(photoId) {
-    const container = document.querySelector(`[data-photo-id="${photoId}"]`);
-    if (container) {
-      container.classList.remove('processing');
-      
-      // Restaurar placeholder original si no hay foto
-      if (!container.classList.contains('has-photo')) {
-        const placeholder = container.querySelector('.photo-placeholder');
-        if (placeholder) {
-          placeholder.innerHTML = `
-            <svg class="camera-icon" viewBox="0 0 24 24">
-              <path d="M12 15.2A3.2 3.2 0 1 1 15.2 12 3.2 3.2 0 0 1 12 15.2zm0-4.8A1.6 1.6 0 1 0 13.6 12 1.6 1.6 0 0 0 12 10.4z"/>
-              <path d="M20 4h-3.17L15 2H9L7.17 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 14H4V6h4.05l1.83-2h4.24l1.83 2H20v12z"/>
-            </svg>
-            <span class="photo-label">Foto ${photoId}</span>
-            <span class="photo-hint">Toque para capturar</span>
-          `;
-        }
-      }
-    }
-  }
-
-  /**
-   * Mostrar notificación toast
-   */
-  showToast(message, type = 'info') {
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.textContent = message;
-    toast.style.cssText = `
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%) translateY(100px);
-      background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
-      color: white;
-      padding: 12px 24px;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      z-index: 10000;
-      opacity: 0;
-      transition: all 0.3s ease;
-    `;
-    
-    document.body.appendChild(toast);
-    
-    // Animar entrada
-    setTimeout(() => {
-      toast.style.transform = 'translateX(-50%) translateY(0)';
-      toast.style.opacity = '1';
-    }, 10);
-    
-    // Remover después de 3 segundos
-    setTimeout(() => {
-      toast.style.transform = 'translateX(-50%) translateY(100px)';
-      toast.style.opacity = '0';
-      setTimeout(() => toast.remove(), 300);
-    }, 3000);
   }
 
   /**
    * Actualizar UI de foto
    */
   updatePhotoUI(photoId, imageData, timestamp) {
-    this.log(`🎨 Actualizando UI para ${photoId}`);
-    
     const container = document.querySelector(`[data-photo-id="${photoId}"]`);
-    if (!container) {
-      this.log(`❌ No se encontró contenedor para ${photoId}`);
-      return;
-    }
-    
     const preview = container.querySelector('.photo-preview');
     const timestampElement = container.querySelector('.photo-timestamp');
     
     // Actualizar preview
-    if (preview) {
-      preview.src = imageData;
-      preview.onload = () => {
-        this.log(`✅ Preview cargado para ${photoId}`);
-      };
-      preview.onerror = () => {
-        this.log(`❌ Error cargando preview para ${photoId}`);
-      };
-    }
+    preview.src = imageData;
     
     // Actualizar timestamp
     if (timestampElement) {
@@ -523,8 +354,6 @@ class AttendanceApp {
     
     // Marcar como foto capturada
     container.classList.add('has-photo');
-    
-    this.log(`✅ UI actualizada para ${photoId}`);
   }
 
   /**
@@ -544,8 +373,9 @@ class AttendanceApp {
     preview.src = '';
     container.classList.remove('has-photo');
     
-    this.log(`🗑️ Foto ${photoId} eliminada`);
-    this.showToast(`Foto ${photoId} eliminada`, 'info');
+    if (Config.dev.enableLogs) {
+      console.log(`🗑️ Foto ${photoId} eliminada`);
+    }
   }
 
   /**
@@ -778,7 +608,9 @@ class AttendanceApp {
       this.resetForm();
     }, Config.ui.resetDelay);
     
-    this.log('✅ Asistencia enviada:', response);
+    if (Config.dev.enableLogs) {
+      console.log('✅ Asistencia enviada:', response);
+    }
   }
 
   /**
