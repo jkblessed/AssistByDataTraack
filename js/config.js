@@ -10,7 +10,7 @@ const Config = {
   api: {
     // URL del webhook de n8n - CAMBIAR POR TU URL
     
-    webhookUrl: 'https://datatraack.app.n8n.cloud/webhook/807b1e03-2dfd-4d0b-8e93-ddf7b595fd24',
+    webhookUrl: 'https://datatraack.app.n8n.cloud/webhook/e61c7618-4764-428c-a78a-06ed77f008c7',
     // Timeout para peticiones (ms)
     timeout: 30000,
     
