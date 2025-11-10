@@ -1,5 +1,5 @@
 /**
- * AplicaciÃ³n Principal - Sistema de Control de Asistencias
+ * Aplicación Principal - Sistema de Control de Asistencias
  * @module app
  */
 
@@ -15,45 +15,45 @@ class AttendanceApp {
   }
 
   /**
-   * Inicializar la aplicaciÃ³n
+   * Inicializar la aplicación
    */
   async init() {
     try {
-      // Mostrar loader de pÃ¡gina
+      // Mostrar loader de página
       this.showPageLoader();
       
-      // Esperar a que el DOM estÃ© listo
+      // Esperar a que el DOM esté listo
       await this.domReady();
       
       // Inicializar elementos del DOM
       this.initElements();
       
-      // Cargar configuraciÃ³n de clientes
+      // Cargar configuración de clientes
       this.loadClients();
       
       // Inicializar manejadores de eventos
       this.initEventHandlers();
       
-      // Inicializar mÃ³dulos
+      // Inicializar módulos
       await this.initModules();
       
       // Cargar datos guardados
       this.loadSavedData();
       
-      // Ocultar loader de pÃ¡gina
+      // Ocultar loader de página
       await this.hidePageLoader();
       
       if (Config.dev.enableLogs) {
-        console.log('âœ… AplicaciÃ³n inicializada correctamente');
+        console.log('✅ Aplicación inicializada correctamente');
       }
     } catch (error) {
-      console.error('Error inicializando aplicaciÃ³n:', error);
-      this.showError('Error al inicializar la aplicaciÃ³n');
+      console.error('Error inicializando aplicación:', error);
+      this.showError('Error al inicializar la aplicación');
     }
   }
 
   /**
-   * Esperar a que el DOM estÃ© listo
+   * Esperar a que el DOM esté listo
    */
   domReady() {
     return new Promise(resolve => {
@@ -87,7 +87,7 @@ class AttendanceApp {
     // Limpiar opciones existentes
     clientSelect.innerHTML = '<option value="">Seleccione un cliente</option>';
     
-    // Agregar opciones de configuraciÃ³n
+    // Agregar opciones de configuración
     Config.clients.forEach(client => {
       const option = document.createElement('option');
       option.value = client.value;
@@ -100,10 +100,10 @@ class AttendanceApp {
    * Inicializar manejadores de eventos
    */
   initEventHandlers() {
-    // Evento de envÃ­o del formulario
+    // Evento de envío del formulario
     this.form.addEventListener('submit', (e) => this.handleSubmit(e));
     
-    // Evento de reintentar ubicaciÃ³n
+    // Evento de reintentar ubicación
     if (this.retryLocationBtn) {
       this.retryLocationBtn.addEventListener('click', () => this.retryLocation());
     }
@@ -146,7 +146,7 @@ class AttendanceApp {
       }
     });
     
-    // ValidaciÃ³n en tiempo real
+    // Validación en tiempo real
     if (Config.features.enableRealtimeValidation) {
       const inputs = this.form.querySelectorAll('input[required], select[required]');
       inputs.forEach(input => {
@@ -160,10 +160,10 @@ class AttendanceApp {
   }
 
   /**
-   * Inicializar mÃ³dulos
+   * Inicializar módulos
    */
   async initModules() {
-    // Inicializar geolocalizaciÃ³n
+    // Inicializar geolocalización
     if (Config.features.enableLocation) {
       await this.initLocation();
     }
@@ -175,16 +175,16 @@ class AttendanceApp {
   }
 
   /**
-   * Inicializar geolocalizaciÃ³n
+   * Inicializar geolocalización
    */
   async initLocation() {
     if (!navigator.geolocation) {
-      this.updateLocationStatus('error', 'GeolocalizaciÃ³n no soportada');
-      this.disableSubmitButton('GeolocalizaciÃ³n requerida');
+      this.updateLocationStatus('error', Config.messages.errors.locationNotSupported);
+      this.disableSubmitButton(Config.messages.errors.locationRequired);
       return;
     }
     
-    this.updateLocationStatus('loading', 'Obteniendo ubicaciÃ³n...');
+    this.updateLocationStatus('loading', Config.messages.info.obtainingLocation);
     this.retryLocationBtn.style.display = 'none';
     
     try {
@@ -195,44 +195,44 @@ class AttendanceApp {
         accuracy: position.coords.accuracy
       };
       
-      this.updateLocationStatus('success', 'UbicaciÃ³n obtenida', 
+      this.updateLocationStatus('success', Config.messages.success.locationObtained, 
         `Lat: ${this.location.latitude.toFixed(6)}, Lng: ${this.location.longitude.toFixed(6)}`
       );
       
-      // Habilitar botÃ³n de envÃ­o
+      // Habilitar botón de envío
       this.enableSubmitButton();
       this.retryLocationBtn.style.display = 'none';
       
     } catch (error) {
-      console.error('Error obteniendo ubicaciÃ³n:', error);
-      let errorMessage = 'No se pudo obtener la ubicaciÃ³n';
+      console.error('Error obteniendo ubicación:', error);
+      let errorMessage = Config.messages.errors.locationFailed;
       
       if (error.code === 1) {
-        errorMessage = 'Permiso de ubicaciÃ³n denegado';
+        errorMessage = Config.messages.errors.locationPermissionDenied;
       } else if (error.code === 2) {
-        errorMessage = 'UbicaciÃ³n no disponible';
+        errorMessage = Config.messages.errors.locationUnavailable;
       } else if (error.code === 3) {
-        errorMessage = 'Tiempo de espera agotado';
+        errorMessage = Config.messages.errors.locationTimeout;
       }
       
       this.updateLocationStatus('error', errorMessage);
-      this.disableSubmitButton('UbicaciÃ³n requerida para enviar');
+      this.disableSubmitButton(Config.messages.errors.locationRequiredToSubmit);
       this.retryLocationBtn.style.display = 'flex';
     }
   }
 
   /**
-   * Reintentar obtener ubicaciÃ³n
+   * Reintentar obtener ubicación
    */
   async retryLocation() {
     if (Config.dev.enableLogs) {
-      console.log('ðŸ”„ Reintentando obtener ubicaciÃ³n...');
+      console.log('🔄 Reintentando obtener ubicación...');
     }
     await this.initLocation();
   }
 
   /**
-   * Deshabilitar botÃ³n de envÃ­o
+   * Deshabilitar botón de envío
    */
   disableSubmitButton(reason) {
     this.submitBtn.disabled = true;
@@ -244,12 +244,12 @@ class AttendanceApp {
   }
 
   /**
-   * Habilitar botÃ³n de envÃ­o
+   * Habilitar botón de envío
    */
   enableSubmitButton() {
     this.submitBtn.disabled = false;
     this.submitBtn.innerHTML = `
-      <span class="btn-text">Enviar Asistencia</span>
+      <span class="btn-text">${Config.messages.buttons.submit}</span>
       <span class="btn-loader"></span>
     `;
     this.submitBtn.style.opacity = '1';
@@ -257,7 +257,7 @@ class AttendanceApp {
   }
 
   /**
-   * Obtener posiciÃ³n actual con Promise
+   * Obtener posición actual con Promise
    */
   getCurrentPosition() {
     return new Promise((resolve, reject) => {
@@ -270,7 +270,7 @@ class AttendanceApp {
   }
 
   /**
-   * Actualizar estado de ubicaciÃ³n en UI
+   * Actualizar estado de ubicación en UI
    */
   updateLocationStatus(status, text, coords = '') {
     const statusElement = document.getElementById('locationStatus');
@@ -298,7 +298,7 @@ class AttendanceApp {
     if (!file) return;
     
     try {
-      // Validar tamaÃ±o
+      // Validar tamaño
       if (!Utils.validateFileSize(file)) {
         this.showError(Config.messages.errors.photoSize);
         event.target.value = '';
@@ -312,7 +312,7 @@ class AttendanceApp {
         return;
       }
       
-      // Comprimir imagen si estÃ¡ habilitado
+      // Comprimir imagen si está habilitado
       let imageData;
       if (Config.features.enableCompression) {
         imageData = await Utils.compressImage(file);
@@ -320,7 +320,7 @@ class AttendanceApp {
         imageData = await Utils.fileToBase64(file);
       }
       
-      // Agregar timestamp si estÃ¡ habilitado
+      // Agregar timestamp si está habilitado
       const timestamp = Utils.formatDateTime();
       if (Config.features.enableTimestamps) {
         imageData = await Utils.addTimestampToImage(imageData, timestamp);
@@ -333,14 +333,14 @@ class AttendanceApp {
       // Actualizar UI
       this.updatePhotoUI(photoId, imageData, timestamp);
       
-      // Mostrar mensaje de Ã©xito
+      // Mostrar mensaje de éxito
       if (Config.dev.enableLogs) {
-        console.log(`âœ… Foto ${photoId} capturada`);
+        console.log(`✅ Foto ${photoId} capturada`);
       }
       
     } catch (error) {
       console.error('Error procesando foto:', error);
-      this.showError('Error al procesar la foto');
+      this.showError(Config.messages.errors.photoProcessing);
       event.target.value = '';
     }
   }
@@ -381,7 +381,7 @@ class AttendanceApp {
     container.classList.remove('has-photo');
     
     if (Config.dev.enableLogs) {
-      console.log(`ðŸ—‘ï¸ Foto ${photoId} eliminada`);
+      console.log(`🗑️ Foto ${photoId} eliminada`);
     }
   }
 
@@ -395,7 +395,7 @@ class AttendanceApp {
     let isValid = true;
     let errorMessage = '';
     
-    // ValidaciÃ³n segÃºn tipo de campo
+    // Validación según tipo de campo
     if (field.id === 'fullName') {
       if (!field.value.trim()) {
         errorMessage = Config.messages.errors.nameRequired;
@@ -450,23 +450,19 @@ class AttendanceApp {
       }
     });
     
-    // Validar fotos
-    const requiredPhotos = ['1', '2', '3', 'ticket'];
+    // Validar fotos (ticket ahora es opcional)
+    const requiredPhotos = ['1', '2', '3'];
     const missingPhotos = requiredPhotos.filter(id => !this.photoData[id]);
     
     if (missingPhotos.length > 0) {
-      if (missingPhotos.includes('ticket')) {
-        this.showError(Config.messages.errors.ticketRequired);
-      } else {
-        this.showError(Config.messages.errors.photosRequired);
-      }
+      this.showError(Config.messages.errors.photosRequired);
       isValid = false;
     }
     
-    // Validar ubicaciÃ³n
+    // Validar ubicación
     if (!this.location || !this.location.latitude || !this.location.longitude) {
-      this.showError('La ubicaciÃ³n es requerida. Por favor, active el GPS y presione "Reintentar"');
-      // Hacer scroll hasta la secciÃ³n de ubicaciÃ³n
+      this.showError(Config.messages.errors.locationRequiredGPS);
+      // Hacer scroll hasta la sección de ubicación
       document.getElementById('locationStatus').scrollIntoView({ 
         behavior: 'smooth', 
         block: 'center' 
@@ -478,12 +474,12 @@ class AttendanceApp {
   }
 
   /**
-   * Manejar envÃ­o del formulario
+   * Manejar envío del formulario
    */
   async handleSubmit(event) {
     event.preventDefault();
     
-    // Prevenir doble envÃ­o
+    // Prevenir doble envío
     if (this.isSubmitting) return;
     
     // Validar formulario
@@ -535,13 +531,13 @@ class AttendanceApp {
         photo1: this.photoData['1'],
         photo2: this.photoData['2'],
         photo3: this.photoData['3'],
-        ticket: this.photoData['ticket']
+        ticket: this.photoData['ticket'] || null
       },
       
       // Timestamps
       timestamps: this.timestamps,
       
-      // UbicaciÃ³n
+      // Ubicación
       location: this.location || {
         latitude: null,
         longitude: null,
@@ -595,33 +591,33 @@ class AttendanceApp {
   }
 
   /**
-   * Manejar envÃ­o exitoso
+   * Manejar envío exitoso
    */
   handleSubmitSuccess(response) {
-    // Guardar estadÃ­sticas
+    // Guardar estadísticas
     this.updateStatistics();
     
-    // Mostrar mensaje de Ã©xito
+    // Mostrar mensaje de éxito
     this.showSuccess(Config.messages.success.submissionComplete);
     
-    // Guardar Ãºltima sumisiÃ³n
+    // Guardar última sumisión
     Utils.storage.set(Config.storage.keys.lastSubmission, {
       date: new Date().toISOString(),
       id: response.id || Utils.generateId()
     });
     
-    // Limpiar formulario despuÃ©s de un delay
+    // Limpiar formulario después de un delay
     setTimeout(() => {
       this.resetForm();
     }, Config.ui.resetDelay);
     
     if (Config.dev.enableLogs) {
-      console.log('âœ… Asistencia enviada:', response);
+      console.log('✅ Asistencia enviada:', response);
     }
   }
 
   /**
-   * Manejar error de envÃ­o
+   * Manejar error de envío
    */
   handleSubmitError(error) {
     let errorMessage = Config.messages.errors.submitFailed;
@@ -638,7 +634,7 @@ class AttendanceApp {
   }
 
   /**
-   * Establecer estado del botÃ³n de envÃ­o
+   * Establecer estado del botón de envío
    */
   setSubmitState(state) {
     if (state === 'loading') {
@@ -669,7 +665,7 @@ class AttendanceApp {
       if (preview) preview.src = '';
     });
     
-    // Reiniciar ubicaciÃ³n
+    // Reiniciar ubicación
     if (Config.features.enableLocation) {
       this.initLocation();
     }
@@ -679,7 +675,7 @@ class AttendanceApp {
   }
 
   /**
-   * Mostrar mensaje de Ã©xito
+   * Mostrar mensaje de éxito
    */
   showSuccess(message) {
     const successElement = document.getElementById('successMessage');
@@ -691,7 +687,7 @@ class AttendanceApp {
     
     successElement.classList.add('active');
     
-    // Auto-ocultar despuÃ©s de un tiempo
+    // Auto-ocultar después de un tiempo
     setTimeout(() => {
       successElement.classList.remove('active');
     }, Config.ui.messageDuration);
@@ -710,7 +706,7 @@ class AttendanceApp {
     
     errorElement.classList.add('active');
     
-    // Auto-ocultar despuÃ©s de un tiempo
+    // Auto-ocultar después de un tiempo
     setTimeout(() => {
       errorElement.classList.remove('active');
     }, Config.ui.messageDuration);
@@ -742,7 +738,7 @@ class AttendanceApp {
   }
 
   /**
-   * Actualizar estadÃ­sticas
+   * Actualizar estadísticas
    */
   updateStatistics() {
     const stats = Utils.storage.get(Config.storage.keys.statistics, {
@@ -759,13 +755,13 @@ class AttendanceApp {
     
     Utils.storage.set(Config.storage.keys.statistics, stats);
     
-    // Guardar nombre y cliente para prÃ³xima vez
+    // Guardar nombre y cliente para próxima vez
     Utils.storage.set(Config.storage.keys.userName, document.getElementById('fullName').value);
     Utils.storage.set(Config.storage.keys.preferredClient, client);
   }
 
   /**
-   * Mostrar loader de pÃ¡gina
+   * Mostrar loader de página
    */
   showPageLoader() {
     const loader = document.getElementById('pageLoader');
@@ -775,7 +771,7 @@ class AttendanceApp {
   }
 
   /**
-   * Ocultar loader de pÃ¡gina
+   * Ocultar loader de página
    */
   async hidePageLoader() {
     if (Config.ui.showPageLoader) {
@@ -802,7 +798,7 @@ class AttendanceApp {
   }
 }
 
-// Inicializar aplicaciÃ³n cuando el DOM estÃ© listo
+// Inicializar aplicación cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
   window.attendanceApp = new AttendanceApp();
 });

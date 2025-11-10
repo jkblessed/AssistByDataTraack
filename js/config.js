@@ -221,7 +221,15 @@ const Config = {
       ticketRequired: 'Por favor, capture la foto del ticket',
       photoSize: 'La foto es muy grande. Máximo 5MB',
       photoType: 'Formato de imagen no válido',
+      photoProcessing: 'Error al procesar la foto',
       locationFailed: 'No se pudo obtener la ubicación',
+      locationNotSupported: 'Geolocalización no soportada por este navegador',
+      locationRequired: 'Geolocalización requerida',
+      locationPermissionDenied: 'Permiso de ubicación denegado',
+      locationUnavailable: 'Ubicación no disponible',
+      locationTimeout: 'Tiempo de espera agotado',
+      locationRequiredToSubmit: 'Ubicación requerida para enviar',
+      locationRequiredGPS: 'La ubicación es requerida. Por favor, active el GPS y presione "Reintentar"',
       submitFailed: 'Error al enviar. Por favor, intente nuevamente',
       networkError: 'Error de conexión. Verifique su internet',
       timeout: 'La solicitud tardó demasiado tiempo',
@@ -238,6 +246,9 @@ const Config = {
       submitting: 'Enviando asistencia...',
       compressingPhoto: 'Procesando foto...',
       retrying: 'Reintentando...'
+    },
+    buttons: {
+      submit: 'Enviar Asistencia'
     }
   },
 
