@@ -92,18 +92,17 @@ const Config = {
    * Lista de Clientes
    */
   clients: [
-    { value: 'walmart', label: 'Walmart' },
-    { value: 'target', label: 'Target' },
-    { value: 'costco', label: 'Costco' },
-    { value: 'home_depot', label: 'Home Depot' },
-    { value: 'lowes', label: "Lowe's" },
-    { value: 'best_buy', label: 'Best Buy' },
-    { value: 'kroger', label: 'Kroger' },
-    { value: 'walgreens', label: 'Walgreens' },
+    { value: 'burlington', label: 'Burlington' },
+    { value: 't-mobile', label: 'T-Mobile' },
+    { value: 'pg_golf', label: 'PGA Golf' },
+    { value: 'pet_smart', label: 'Petsmart' },
+    { value: 'medline', label: 'Medline' },
+    { value: 'fedex', label: 'Fedex' },
+    { value: 'publix', label: 'Publix' },
+    { value: 'h&m', label: 'H&M' },
     { value: 'cvs', label: 'CVS' },
     { value: 'sams_club', label: "Sam's Club" },
-    { value: 'whole_foods', label: 'Whole Foods' },
-    { value: 'trader_joes', label: "Trader Joe's" },
+    { value: 'apple', label: 'Apple' },
     { value: 'otro', label: 'Otro' }
   ],
 
