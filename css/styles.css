@@ -220,14 +220,6 @@ body::before {
   margin-bottom: var(--spacing-lg);
 }
 
-.logo {
-  width: 80px;
-  height: 80px;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 20px;
-  padding: 15px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-}
 
 .title {
   font-size: 2rem;
@@ -745,4 +737,9 @@ body::before {
 .alert-content p {
   font-size: 0.875rem;
   opacity: 0.9;
+}
+
+.logo {
+  width: 160px;   /* Ajusta el ancho */
+  height: auto;   /* Mantiene proporción */
 }
